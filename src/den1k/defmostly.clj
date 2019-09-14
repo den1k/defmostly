@@ -1,14 +1,12 @@
 (ns den1k.defmostly
   (:require
    [den1k.defmostly.protocols :as p]
-   [clojure.spec-alpha2 :as s]
-   [clojure.spec-alpha2.gen :as gen]
-   [meander.match.delta :as mm])
+   [clojure.spec-alpha2 :as s])
   (:import (clojure.lang IFn)))
 
 (declare spec-specificity)
 
-(defn spec-speci-dispatch [_ form]
+(defn- spec-speci-dispatch [_ form]
   (when (seq? form)
     (first form)))
 
@@ -35,7 +33,6 @@
 
 (defmethod spec-specificity* `s/select
   [cnt [_ schema selection]]
-  ;(println (s/form schema) selection)
   (let [[_ [scm]] (s/form schema)]
     (+ cnt (count-specs (map #(get scm %) selection)))))
 
@@ -53,12 +50,6 @@
   (cond->> spec
     (or (keyword? spec) (s/spec? spec)) s/form
     true (spec-specificity* 0)))
-(let [spec any?]
-  #_(or (s/spec? (s/form spec)) (s/spec spec))
-  (if (keyword? spec)
-    (s/spec? (s/get-spec spec))
-    `(s/spec ~spec)))
-
 
 (defrecord MostlyMethod
   [ranked-spec-fns spec->fn]
@@ -69,22 +60,21 @@
                                  :rank (spec-specificity spec)}))
   IFn
   (invoke [this args]
-    (let [ret (reduce (fn [_ {:keys [spec]}]
+    (let [ret (reduce (fn [none {:keys [spec]}]
                         (if (s/valid? spec args)
                           (let [f (get @spec->fn spec)]
                             (reduced (f args)))
-                          _))
+                          none))
                       ::none
                       @ranked-spec-fns)]
-     (if (identical? ::none ret)
-       (throw (ex-info (str "No method in mostlymethod '"
-                            (-> this meta :name)
-                            "' for dispatch value: " args)
-                       {}))
-       ret
-       ))))
+      (if (identical? ::none ret)
+        (throw (ex-info (str "No method in mostlymethod '"
+                             (-> this meta :name)
+                             "' for dispatch value: " args)
+                        {}))
+        ret))))
 
-(defn ensure-vec [x]
+(defn- ensure-vec [x]
   (cond
     (vector? x) x
     (nil? x) []
@@ -108,14 +98,8 @@
   (->MostlyMethod (atom (sorted-set-by rank-comparator))
                   (atom {})))
 
-(comment
- (def m (mostly-method*))
-
- (p/add-method m ::id (fn [id] (prn "id" id)))
- (p/add-method m ::user (fn [user] (prn "user" user))))
-
 (defmacro defmostly [name spec & fn-tail]
-  `(do (def ~name (with-meta (mostly-method*) {:name '~name}))
+  `(do (defonce ~name (with-meta (mostly-method*) {:name '~name}))
        (p/add-method ~name
                      ~spec
                      (fn ~name ~@fn-tail))))

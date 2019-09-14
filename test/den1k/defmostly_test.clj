@@ -65,4 +65,3 @@
     (is (thrown? Exception (mm :no-match)))
     (p/add-method mm (s/spec any?) (fn [x] [:default x]))
     (is (= [:default :no-match] (mm :no-match)))))
-
