@@ -2,9 +2,8 @@
  ["src"]
  :deps
  {org.clojure/clojure {:mvn/version "1.10.1"}
-  meander/delta       {:mvn/version "0.0.149"}
   clojure.spec-alpha2 {:git/url "https://github.com/clojure/spec-alpha2"
-                       :sha "683e507a9647b65a248a5e00d314f9cfaaa2ce56"}}
+                       :sha     "683e507a9647b65a248a5e00d314f9cfaaa2ce56"}}
  :aliases
  {:test {:extra-paths ["test"]
          :extra-deps  {org.clojure/test.check {:mvn/version "0.10.0"}}}
